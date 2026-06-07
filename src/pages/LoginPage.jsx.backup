@@ -1,0 +1,104 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { Button, Alert } from "../components/UI";
+
+const DEMO = [
+  { label: "Admin",     email: "admin@library.com",     role: "admin",     icon: "🛡️" },
+  { label: "Librarian", email: "librarian@library.com", role: "librarian", icon: "📋" },
+  { label: "Member",    email: "john@example.com",       role: "member",    icon: "👤" },
+];
+
+export default function LoginPage() {
+  const { login } = useAuth();
+  const navigate  = useNavigate();
+  const [email,    setEmail]    = useState("admin@library.com");
+  const [password, setPassword] = useState("Admin@123");
+  const [error,    setError]    = useState("");
+  const [loading,  setLoading]  = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(""); setLoading(true);
+    try {
+      await login(email, password);
+      navigate("/");
+    } catch (err) {
+      setError(err.response?.data?.message || "Login failed. Is the backend running on port 5000?");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{
+      minHeight: "100vh", background: "var(--bg)",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
+    }}>
+      <div style={{ width: "100%", maxWidth: 420 }}>
+        {/* Logo */}
+        <div style={{ textAlign: "center", marginBottom: 36 }}>
+          <div style={{
+            width: 64, height: 64, background: "var(--accent)15",
+            border: "1px solid var(--accent)35", borderRadius: 16,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 30, margin: "0 auto 16px",
+          }}>📖</div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text1)", fontFamily: "var(--font-head)", letterSpacing: -.5 }}>
+            Library Portal
+          </h1>
+          <p style={{ color: "var(--text2)", marginTop: 6, fontSize: 13 }}>
+            Sign in to manage your library
+          </p>
+        </div>
+
+        {/* Quick login tiles */}
+        <p style={{ fontSize: 11, color: "var(--text3)", textAlign: "center", marginBottom: 10, textTransform: "uppercase", letterSpacing: .8 }}>
+          Quick Demo Login
+        </p>
+        <div style={{ display: "flex", gap: 8, marginBottom: 22 }}>
+          {DEMO.map(d => (
+            <button key={d.email} onClick={() => setEmail(d.email)} style={{
+              flex: 1, background: email === d.email ? "var(--accent)18" : "var(--surface)",
+              border: `1px solid ${email === d.email ? "var(--accent)" : "var(--border)"}`,
+              borderRadius: 9, padding: "10px 6px", cursor: "pointer",
+              color: email === d.email ? "var(--accent)" : "var(--text2)",
+              fontSize: 11, fontWeight: 600, transition: "all .15s", textAlign: "center",
+            }}>
+              <div style={{ fontSize: 18, marginBottom: 4 }}>{d.icon}</div>
+              {d.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={{
+          background: "var(--card)", border: "1px solid var(--border)",
+          borderRadius: 16, padding: 26,
+        }}>
+          <Alert message={error} />
+
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+              style={{ width: "100%" }} placeholder="email@example.com" required />
+          </div>
+
+          <div style={{ marginBottom: 22 }}>
+            <label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+              style={{ width: "100%" }} placeholder="••••••••" required />
+          </div>
+
+          <Button type="submit" disabled={loading} style={{ width: "100%", justifyContent: "center", padding: "11px" }}>
+            {loading ? "Signing in…" : "Sign In"}
+          </Button>
+
+          <p style={{ textAlign: "center", fontSize: 11, color: "var(--text3)", marginTop: 14 }}>
+            Demo password: <strong style={{ color: "var(--text2)" }}>Admin@123</strong> (any works if backend allows)
+          </p>
+        </form>
+      </div>
+    </div>
+  );
+}
