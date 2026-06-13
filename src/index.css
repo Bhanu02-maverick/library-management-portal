@@ -1,26 +1,30 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:       #080c14;
-  --surface:  #0f1520;
-  --card:     #141a27;
-  --card2:    #192030;
-  --border:   #1e2a3d;
-  --border2:  #263347;
-  --accent:   #3b82f6;
-  --accent2:  #2563eb;
-  --teal:     #14b8a6;
-  --rose:     #f43f5e;
-  --amber:    #f59e0b;
-  --green:    #22c55e;
-  --purple:   #a855f7;
-  --text1:    #e2e8f0;
-  --text2:    #7d8fa8;
-  --text3:    #3d4f63;
-  --font-head: 'Syne', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
+  /* ── CLEAN PREMIUM DASHBOARD THEME ── */
+  --bg:       #f8fafc;  /* Soft, airy slate background */
+  --surface:  #ffffff;  /* Pure white for panels */
+  --card:     #ffffff;  /* Pure white for cards */
+  --card2:    #f1f5f9;
+  --border:   #e2e8f0;  /* Subtle dividers */
+  --border2:  #cbd5e1;
+  
+  --accent:   #4f46e5;  /* Deep Indigo for buttons/active states */
+  --accent2:  #4338ca;
+  --teal:     #0d9488;
+  --rose:     #e11d48;
+  --amber:    #d97706;
+  --green:    #16a34a;
+  --purple:   #7c3aed;
+  
+  --text1:    #0f172a;  /* High contrast dark slate */
+  --text2:    #475569;  /* Medium slate for secondary text */
+  --text3:    #94a3b8;  /* Light slate for placeholders */
+  
+  --font-head: 'Poppins', sans-serif;
+  --font-body: 'Inter', sans-serif;
 }
 
 body {
@@ -32,12 +36,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1,h2,h3,h4 { font-family: var(--font-head); }
+h1, h2, h3, h4 { font-family: var(--font-head); letter-spacing: -0.02em; }
 
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: var(--bg); }
+/* Clean up the scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
 
+/* Inputs without the glass blur */
 input, select, textarea, button { font-family: var(--font-body); }
 
 input[type="text"],
@@ -51,20 +57,30 @@ textarea {
   border-radius: 8px;
   color: var(--text1);
   font-size: 13px;
-  padding: 9px 13px;
+  padding: 10px 14px;
   outline: none;
-  transition: border-color .15s;
-  color-scheme: dark;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
 }
+
 input:focus, select:focus, textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+/* Force standard card styling to override any lingering glass effects */
+.card, div[style*="var(--card)"], div[style*="var(--surface)"] {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+  border-radius: 12px;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* Spinner */
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
 .spinner {
   width: 22px; height: 22px;
@@ -74,4 +90,4 @@ input:focus, select:focus, textarea:focus {
   animation: spin .7s linear infinite;
   display: inline-block;
 }
-.fade-in { animation: fadeIn .3s ease both; }
+.fade-in { animation: fadeIn .4s cubic-bezier(0.16, 1, 0.3, 1) both; }

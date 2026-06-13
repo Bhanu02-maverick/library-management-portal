@@ -3,7 +3,7 @@ import { borrowsAPI, booksAPI, usersAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import {
   PageHeader, Card, Button, StatusBadge, Table,
-  Modal, FormField, SearchInput, Pagination, Spinner, Alert
+  Modal, FormField, Pagination, Spinner, Alert, Badge
 } from "../components/UI";
 
 export default function BorrowsPage() {
@@ -32,13 +32,16 @@ export default function BorrowsPage() {
   const [availBooks, setAvailBooks] = useState([]);
 
   const canManage = user.role !== "member";
+  
+  // Calculate default due date (14 days from today)
   const borrowDueDate = new Date(Date.now() + 14 * 86400000)
-    .toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    .toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
 
   const fetchBorrows = useCallback(() => {
     setLoading(true);
     const params = { page, limit: 15 };
     if (filter !== "all") params.status = filter;
+    
     borrowsAPI.getAll(params)
       .then(res => {
         setBorrows(res.data.borrows);
@@ -52,7 +55,7 @@ export default function BorrowsPage() {
   useEffect(() => { fetchBorrows(); }, [fetchBorrows]);
   useEffect(() => { setPage(1); }, [filter]);
 
-  // Load members + available books when issue modal opens
+  // Load members and available books when the Issue modal opens
   useEffect(() => {
     if (!showIssue) return;
     usersAPI.getAll({ role: "member", limit: 100 })
@@ -65,14 +68,14 @@ export default function BorrowsPage() {
 
   async function handleIssue() {
     if (!issueForm.user_id || !issueForm.book_id) {
-      setIssueErr("Please select both a member and a book"); return;
+      setIssueErr("Please select both a member and a book."); return;
     }
     setIssueLoad(true); setIssueErr("");
     try {
       await borrowsAPI.issue(issueForm);
       setShowIssue(false);
       setIssueForm({ user_id: "", book_id: "", notes: "" });
-      setSuccess("Book issued successfully!");
+      setSuccess("Book successfully issued to member!");
       fetchBorrows();
       setTimeout(() => setSuccess(""), 3000);
     } catch (e) {
@@ -91,33 +94,36 @@ export default function BorrowsPage() {
     }
   }
 
-  const tabs = ["all", "active", "overdue", "returned"];
+  const tabs = ["all", "active", "returned"];
 
   const columns = [
-    { key: "book_title",   label: "Book",    render: (v, row) => (
-      <div>
-        <div style={{ fontWeight: 600, color: "var(--text1)" }}>{v}</div>
-        {row.cover_url && <div style={{ fontSize: 11, color: "var(--text2)", marginTop: 2 }}>📸 cover available</div>}
-      </div>
+    { key: "book_title",   label: "Book",    render: (v) => (
+      <div style={{ fontWeight: 600, color: "var(--text1)" }}>{v}</div>
     )},
     { key: "member_name",  label: "Member",  render: v => <span style={{ color: "var(--text2)" }}>{v}</span> },
-    { key: "issued_date",  label: "Issued",  render: v => <span style={{ fontSize: 12, color: "var(--text2)" }}>{v}</span> },
-    { key: "due_date",     label: "Due Date", render: (v, row) => (
-      <span style={{
-        fontSize: 12, fontWeight: row.status === "overdue" ? 700 : 400,
-        color: row.status === "overdue" ? "var(--rose)" : "var(--text2)",
-      }}>
-        {v} {row.status === "overdue" && `(${row.days_overdue}d late)`}
-      </span>
-    )},
-    { key: "status",       label: "Status",  render: v => <StatusBadge status={v} /> },
+    { key: "issued_date",  label: "Issued",  render: v => <span style={{ fontSize: 12, color: "var(--text2)" }}>{v.split('T')[0]}</span> },
+    { key: "due_date",     label: "Due Date", render: (v, row) => {
+      const isOverdue = row.status === "active" && row.days_overdue > 0;
+      return (
+        <span style={{
+          fontSize: 12, fontWeight: isOverdue ? 700 : 400,
+          color: isOverdue ? "var(--rose)" : "var(--text2)",
+        }}>
+          {v.split('T')[0]} {isOverdue && ` (${row.days_overdue} days late)`}
+        </span>
+      )
+    }},
+    { key: "status",       label: "Status",  render: (v, row) => {
+      const displayStatus = (row.status === "active" && row.days_overdue > 0) ? "overdue" : v;
+      return <StatusBadge status={displayStatus} />
+    }},
     { key: "fine_amount",  label: "Fine",    render: v => v > 0
-      ? <span style={{ color: "var(--rose)", fontWeight: 700 }}>₹{v}</span>
+      ? <span style={{ color: "var(--rose)", fontWeight: 700 }}>${Number(v).toFixed(2)}</span>
       : <span style={{ color: "var(--text3)" }}>—</span>
     },
     { key: "id", label: "Action", render: (v, row) => (
       canManage && row.status === "active"
-        ? <Button size="sm" variant="ghost" onClick={() => setReturnId(v)}>Return</Button>
+        ? <Button size="sm" variant="ghost" onClick={() => setReturnId(v)}>Return Book</Button>
         : null
     )},
   ];
@@ -125,8 +131,8 @@ export default function BorrowsPage() {
   return (
     <div className="fade-in">
       <PageHeader
-        title="🔄 Borrow Records"
-        subtitle={`${total} total records`}
+        title="🔄 Borrowing Desk"
+        subtitle={`${total} active and past borrow records`}
         action={canManage && (
           <Button icon="➕" onClick={() => setShowIssue(true)}>Issue Book</Button>
         )}
@@ -157,12 +163,12 @@ export default function BorrowsPage() {
       <Pagination page={page} pages={pages} onPage={setPage} />
 
       {/* Issue Book Modal */}
-      <Modal open={showIssue} onClose={() => { setShowIssue(false); setIssueErr(""); }} title="Issue Book to Member" maxWidth={440}>
+      <Modal open={showIssue} onClose={() => { setShowIssue(false); setIssueErr(""); }} title="Issue a Book" maxWidth={440}>
         <Alert message={issueErr} />
         <FormField label="Select Member *">
           <select style={{ width: "100%" }} value={issueForm.user_id}
             onChange={e => setIssueForm(p => ({ ...p, user_id: e.target.value }))}>
-            <option value="">— Choose member —</option>
+            <option value="">— Select a student/member —</option>
             {members.map(m => (
               <option key={m.id} value={m.id}>{m.name} ({m.email})</option>
             ))}
@@ -171,9 +177,9 @@ export default function BorrowsPage() {
         <FormField label="Select Book *">
           <select style={{ width: "100%" }} value={issueForm.book_id}
             onChange={e => setIssueForm(p => ({ ...p, book_id: e.target.value }))}>
-            <option value="">— Choose available book —</option>
+            <option value="">— Select an available book —</option>
             {availBooks.map(b => (
-              <option key={b.id} value={b.id}>{b.title} (by {b.author_name}) — {b.available_copies} copies</option>
+              <option key={b.id} value={b.id}>{b.title} — {b.available_copies} copies left</option>
             ))}
           </select>
         </FormField>
@@ -186,20 +192,20 @@ export default function BorrowsPage() {
           background: "var(--accent)10", border: "1px solid var(--accent)30",
           borderRadius: 8, padding: "10px 14px", marginBottom: 18, fontSize: 12, color: "var(--text2)",
         }}>
-          📅 Due date will be: <strong style={{ color: "var(--text1)" }}>{borrowDueDate}</strong> (14 days)
+          📅 Due date will be calculated as: <strong style={{ color: "var(--text1)" }}>{borrowDueDate}</strong> (14 days)
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <Button onClick={handleIssue} disabled={issueLoad}>
-            {issueLoad ? <Spinner size={14} /> : null} Issue Book
+            {issueLoad ? <Spinner size={14} /> : null} Complete Issue
           </Button>
           <Button variant="ghost" onClick={() => setShowIssue(false)}>Cancel</Button>
         </div>
       </Modal>
 
       {/* Return Confirm Modal */}
-      <Modal open={!!returnId} onClose={() => setReturnId(null)} title="Confirm Book Return" maxWidth={360}>
+      <Modal open={!!returnId} onClose={() => setReturnId(null)} title="Return Book" maxWidth={360}>
         <p style={{ color: "var(--text2)", fontSize: 13, marginBottom: 20 }}>
-          Mark this book as returned? Any applicable late fine will be calculated automatically.
+          Are you sure you want to mark this book as returned? Any applicable late fines will be processed automatically.
         </p>
         <div style={{ display: "flex", gap: 10 }}>
           <Button variant="success" onClick={() => handleReturn(returnId)}>✅ Confirm Return</Button>
@@ -208,7 +214,7 @@ export default function BorrowsPage() {
       </Modal>
 
       {/* Return Result Modal */}
-      <Modal open={!!returnRes} onClose={() => setReturnRes(null)} title="Book Returned ✅" maxWidth={360}>
+      <Modal open={!!returnRes} onClose={() => setReturnRes(null)} title="Book Returned" maxWidth={360}>
         {returnRes && (
           <div>
             <div style={{
@@ -219,10 +225,10 @@ export default function BorrowsPage() {
               <div style={{ fontSize: 15, fontWeight: 700, color: "var(--green)" }}>Return Successful</div>
               {returnRes.fine_amount > 0 ? (
                 <div style={{ marginTop: 10, color: "var(--rose)", fontWeight: 600 }}>
-                  Fine charged: ₹{returnRes.fine_amount} ({returnRes.days_late} days late)
+                  Late Fine Charged: ${Number(returnRes.fine_amount).toFixed(2)} ({returnRes.days_late} days late)
                 </div>
               ) : (
-                <div style={{ marginTop: 10, color: "var(--text2)", fontSize: 13 }}>No fine — returned on time!</div>
+                <div style={{ marginTop: 10, color: "var(--text2)", fontSize: 13 }}>No fine — book was returned on time!</div>
               )}
             </div>
             <Button style={{ width: "100%", justifyContent: "center" }} onClick={() => setReturnRes(null)}>Close</Button>
